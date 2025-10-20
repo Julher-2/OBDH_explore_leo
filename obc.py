@@ -59,7 +59,7 @@ future_time = (clock.get_time() + timedelta(seconds=5)).strftime("%Y-%m-%dT%H:%M
 sched.schedule_tc("TAKE_PICTURE", future_time)
 
 # Wait 10 seconds to see execution
-time.sleep(10)
+time.sleep(10)  # delay needed for successful execution i
 sched.stop_tc_check()
 
 # ---------- EventLogger -------------------------------------------------
