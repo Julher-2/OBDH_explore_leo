@@ -1,5 +1,9 @@
 How to use git:
 
+Navigate to where you want your files
+
+        cd file_path
+
 Cloning repository: https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository
 
 Before starting to work oon your alway make sure to do command:
