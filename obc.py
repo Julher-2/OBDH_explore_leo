@@ -43,14 +43,14 @@ for _ in range(5):
     time.sleep(1)
 
 # Change onboard time via TC
-new_time = "2025-10-19T12:00:00Z"
+new_time = "2025-10-19T12:00:00Z"                                         # INPUT FROM COMMS 
 clock.set_time(new_time)
 
 # ---------- Scheduler ---------------------------------------------------
 
 # Create scheduler linked to clock
 sched = Scheduler(clock)
-sched.start_tc_check(interval=1)  # run background checking
+sched.start_tc_check(interval=1)  # run background check for new TC
 
 # Schedule a TC 5 seconds in the future
 future_time = (clock.get_time() + timedelta(seconds=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -64,6 +64,8 @@ sched.stop_tc_check()
 
 # Create logger linked to clock
 logger = EventLogger(clock)
+
+# logger.log_event()                                                       # I NEED TO INTRODUCE INPUT FROM COMMS
 
 logger.log_event("OBC", "MODE_CHANGE", "Switched to SAFE mode")
 time.sleep(2)
