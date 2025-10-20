@@ -1,7 +1,16 @@
 import socket
 import datetime
+import housekeeping as hk
+from onboard_time import OnboardTime
+
+
+# Start onboard clock
+clock = OnboardTime(tick_interval=1)
+clock.start_clock()
 
 def main():
+
+
 
 
     HOST = '0.0.0.0'  # Listen on all available interfaces
@@ -9,19 +18,19 @@ def main():
 
     # 1. Create a socket object
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        # 2. Bind the socket to the port
+        # Bind the socket to the port
         s.bind((HOST, PORT))
-        # 3. Listen for incoming connections
+        # Listen for incoming connections
         s.listen()
         print(f"Satellite (Server) listening on port {PORT}...")
         
-        # 4. Accept a connection
+        # Accept a connection
         conn, addr = s.accept()
         with conn:
             print(f"Ground Station connected from {addr}")
             
             while True:
-                # 5. Receive telecommand from ground station
+                # Receive telecommand from ground station
                 data = conn.recv(1024)
                 if not data:
                     break
@@ -36,9 +45,15 @@ def main():
                     else:
                         ACK="NAK"
                     conn.sendall(ACK.encode())
+                    
 
-                    # 6. Simulate sending telemetry back
-                    telemetry=str(Send_TM(status,cmdtype,par))
+                    # chose what function to call basing on the command and get the relative telemetry back
+                    tm_par=chose_what_to_do(status, time, cmdtype, par)
+
+
+
+                    # pack the telemetry information
+                    telemetry=str(Send_TM(status,cmdtype,tm_par))
                         
                     conn.sendall(telemetry.encode())
 
@@ -50,9 +65,10 @@ def Interpret_TC(telecommand):
     telecommand=str(telecommand)
     # split the telecommand into time tag (tt) and the command (cmd)
     tt, cmd=telecommand.split(sep=",")
-    # 
+    # interpret each part of the TC
     status_tt,time=Interpret_tt(tt)
     status_cmd,cmdtype,par=Interpret_cmd(cmd)
+    # compute the overall status of the command (0: error, 1: execute, 3: schedule)
     status=status_tt*status_cmd
     return status, time, cmdtype, par
     
@@ -84,9 +100,10 @@ def Interpret_cmd(cmd):
     # making sure that cmd is a string
     cmd=str(cmd)
     cmdtype, par=cmd.split(sep="/")
+    # chacking the command is readable and properly formatting the parameter 
+    # of mode change to give as input to the function
     match cmdtype:
         case "1":
-            # succes= mode_change_fun(par)
             match par:
                 case "0":
                     par="safe"
@@ -108,39 +125,27 @@ def Interpret_cmd(cmd):
                     status=0
         case "2":
             hh,mm,ss,xx=par.split(sep=":")
-            # if xx is not an empty string the format is invalid
             if time_is_ok(hh,mm,ss,xx):
-                # !!!!!!!!!!!!!!!!!! format data in a proper way
-                #time=datetime.time(hour=hh,minute=mm,second=ss).isoformat
+                par=datetime.time(hour=hh,minute=mm,second=ss).isoformat
                 status=1
             else:
                 status=0
         case "3":
-            # !!!!!!!!!!!!!!!!!! format data in a proper way
             status=1
         case "4":
-            # !!!!!!!!!!!!!!!!!! format data in a proper way
             status=1
         case _:
             status=0
     return status,cmdtype,par
 
-def Send_TM(status,cmdtype,par):
+def Send_TM(status,cmdtype,tm_par):
 
     # command: type of command
     # status:   0 failed 
     #           1 executed
     #           2 scheduled
     # par: parameters, for request data will be the data, for switch mode will be the the 
-    match cmdtype:
-        case "1":
-            print()
-            
-        case "2":
-            print()
-        case "3":
-            print()
-    telemetry=cmdtype+","+status+","+par
+    telemetry=cmdtype+","+status+","+tm_par
     return telemetry
 
 
@@ -162,3 +167,33 @@ def time_is_ok(hh,mm,ss,xx):
                 return False
             else:
                 return True
+            
+def chose_what_to_do(status, time, cmdtype, par):
+    if status==0:
+        tm_par="-"
+    elif status==2:
+        #!!! call the scheduler
+        tm_par=par
+    else:
+        match cmdtype:
+            case "1":
+                #!!! here we need to call the telecommand function to change the mode
+                tm_par=par
+            case "2":
+                # Change onboard time via TC 
+                clock.set_time(par)        
+                tm_par=par
+            case "3":
+                #!!! here we need to get HK data and store it in a string
+                bl=hk.battery_level()
+                sr=hk.spinning_ratio()
+                temp=hk.temperature()
+                tm_par="Battery level: "+bl+"\nSpinning ratio: "+sr+"\nTemperature: "+temp
+            case "4":
+                #!!! here we need to get PL data and store it in a string
+                tm_par=""
+    return tm_par
+
+main()
+# Stop the background clock
+clock.stop_clock()
