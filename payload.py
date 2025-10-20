@@ -15,7 +15,6 @@ def heartbeatcheck(stop_event):
 	while not stop_event.is_set():
 
 		hb= heartbeat()[0]
-		print(hb)
 		if hb == 1:
 			a = 0
 		else:
