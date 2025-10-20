@@ -89,15 +89,19 @@ def Interpret_cmd(cmd):
             # succes= mode_change_fun(par)
             match par:
                 case "0":
-                    #!!!!!!!!!!!!!! format data in a proper way
+                    par="safe"
                     status=1
                 case "1":
+                    par="science"
                     status=1
                 case "2":
+                    par="downlink"
                     status=1
                 case "3":
+                    par="detumbling"
                     status=1
                 case "4":
+                    par="stand-by"
                     status=1
                 case _:
 
