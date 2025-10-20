@@ -43,7 +43,7 @@ for _ in range(5):
     time.sleep(1)
 
 # Change onboard time via TC
-new_time = "2025-10-19T12:00:00Z"                                         # INPUT FROM COMMS 
+new_time = "2025-10-19T12:00:00Z"                                         # INPUT new_time FROM COMMS 
 clock.set_time(new_time)
 
 # ---------- Scheduler ---------------------------------------------------
@@ -53,7 +53,9 @@ sched = Scheduler(clock)
 sched.start_tc_check(interval=1)  # run background check for new TC
 
 # Schedule a TC 5 seconds in the future
-future_time = (clock.get_time() + timedelta(seconds=5)).strftime("%Y-%m-%dT%H:%M:%SZ")   # I NEED TO INTRODUCE INPUT FROM COMMS
+# new_tc =                                                                  # INPUT TC(time, command) FROM COMMS
+# sched.schedule_tc(new_tc["command"], new_tc["time"])
+future_time = (clock.get_time() + timedelta(seconds=5)).strftime("%Y-%m-%dT%H:%M:%SZ")  # JUST AN EXAMPLE
 sched.schedule_tc("TAKE_PICTURE", future_time)
 
 # Wait 10 seconds to see execution
@@ -73,9 +75,9 @@ logger.log_event("Payload", "PAYLOAD_EVENT", "Image capture started")
 time.sleep(1)
 logger.log_event("Payload", "PAYLOAD_EVENT", "Image capture complete")
 
-print("\nAll events:")
-for event in logger.get_events():
-    print(event)
+# print("\nAll events:")
+# for event in logger.get_events():
+#     print(event)
 
 # ---------- OnboardTime -------------------------------------------------
 
