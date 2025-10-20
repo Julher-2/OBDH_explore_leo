@@ -53,7 +53,7 @@ sched = Scheduler(clock)
 sched.start_tc_check(interval=1)  # run background check for new TC
 
 # Schedule a TC 5 seconds in the future
-future_time = (clock.get_time() + timedelta(seconds=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+future_time = (clock.get_time() + timedelta(seconds=5)).strftime("%Y-%m-%dT%H:%M:%SZ")   # I NEED TO INTRODUCE INPUT FROM COMMS
 sched.schedule_tc("TAKE_PICTURE", future_time)
 
 # Wait 10 seconds to see execution
