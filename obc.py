@@ -43,7 +43,8 @@ for _ in range(5):
     time.sleep(1)
 
 # Change onboard time via TC
-clock.set_time("2025-10-19T12:00:00Z")
+new_time = "2025-10-19T12:00:00Z"
+clock.set_time(new_time)
 
 # ---------- Scheduler ---------------------------------------------------
 
