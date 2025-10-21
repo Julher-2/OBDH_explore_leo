@@ -21,10 +21,16 @@ def main():
                 command=Alter_TC(command)
                 s.sendall(command.encode())
                 
+            
+                
                 # 4. Receive telemetry
                 data = s.recv(1024)
-                telemetry = data.decode()
-                Interpret_TM(telemetry)
+                response = data.decode()  
+
+                if response.startswith("FILE:"):
+                    Open_file(response, s) 
+                else:
+                    Interpret_TM(response)
 
         except ConnectionRefusedError:
             print("Error: Could not connect to the Satellite. Check IP/Port and if the satellite is on.")
@@ -32,6 +38,23 @@ def main():
             print(f"An error occurred: {e}")
 
 
+def Open_file(header, client_socket):
+    if header.startswith("FILE:"):
+        filesize = int(header.split(":")[1])
+        client_socket.send(b"READY")  # acknowledge readiness
+
+        received = 0
+        with open("received_data.txt", "wb") as f:
+            while received < filesize:
+                chunk = client_socket.recv(1024)
+                if not chunk:
+                    break
+                f.write(chunk)
+                received += len(chunk)
+
+        print(f"File received ({received} bytes) and saved as 'received_data.txt'.")
+    else:
+        print("Received from SC:", header)
 
 
 

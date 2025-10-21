@@ -4,7 +4,10 @@ import housekeeping as hk
 from onboard_time import OnboardTime
 import threading
 import time
+import numpy as np
 from housekeeping import ModeManager, battery_level, spinning_ratio, temperature
+from payload import heartbeat, send_payload
+
 from payload import heartbeat, send_payload
 
 
@@ -247,6 +250,7 @@ def chose_what_to_do(status, time, cmdtype, par, mm, conn):
                 tm_par = f"Battery: {bl:.2f}%, Spin: {sr:.2f}, Temp: {temp:.2f}"
             case 4:
                 tm_par = "Payload data TBD"
+                send_payload(conn)
             case _:
                 tm_par = "-"
     return tm_par
