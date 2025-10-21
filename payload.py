@@ -78,10 +78,11 @@ def server_program(stop_event):
 
 	while True:
         # receive data stream. it won't accept data packet greater than 1024 bytes
+		
 		data = conn.recv(1024)
 		if not data:
-            		break
-
+			break
+	
 		command = data.decode().strip().lower()
 		print("Received from ground '", command, "'")
 
