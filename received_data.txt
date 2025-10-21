@@ -1,5 +1,0 @@
-<<<<<<< HEAD
-4,1,Payload data TBD
-=======
-4,1,Payload sent
->>>>>>> 9fd799ae8a1994e134732da47d2db60be2941430
