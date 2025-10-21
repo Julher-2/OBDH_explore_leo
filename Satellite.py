@@ -8,12 +8,12 @@ from onboard_time import OnboardTime
 clock = OnboardTime(tick_interval=1)
 clock.start_clock()
 
-def main():
+def Communications_Interface():
 
 
 
 
-    HOST = '0.0.0.0'  # Listen on all available interfaces
+    HOST = socket.gethostname()  # Listen on all available interfaces
     PORT = 12345      # Port to listen on (choose any unused port > 1024)
 
     # 1. Create a socket object
@@ -82,9 +82,9 @@ def Interpret_tt(tt):
         print("time tagget commant: to be executed at "+time)
         #if the command is time tagged check that the time is in the correct format
         # Split the time in hour minutes and second + an additional part (xx) to check for invalid formatting
-        hh,mm,ss,xx=time.split(sep=":")
+        hh,mm,ss=time.split(sep=":")
         # if xx is not an empty string the format is invalid
-        if time_is_ok(hh,mm,ss,xx):
+        if time_is_ok(hh,mm,ss):
             status=2
             time=datetime.time(hour=int(hh),minute=int(mm),second=int(ss)).isoformat
         else:
@@ -124,9 +124,9 @@ def Interpret_cmd(cmd):
 
                     status=0
         case "2":
-            hh,mm,ss,xx=par.split(sep=":")
-            if time_is_ok(hh,mm,ss,xx):
-                par=datetime.time(hour=hh,minute=mm,second=ss).isoformat
+            hh,mm,ss=par.split(sep=":")
+            if time_is_ok(hh,mm,ss):
+                par=datetime.time(hour=int(hh),minute=int(mm),second=int(ss)).isoformat
                 status=1
             else:
                 status=0
@@ -136,6 +136,7 @@ def Interpret_cmd(cmd):
             status=1
         case _:
             status=0
+    print(status,cmdtype,par)
     return status,cmdtype,par
 
 def Send_TM(status,cmdtype,tm_par):
@@ -145,28 +146,26 @@ def Send_TM(status,cmdtype,tm_par):
     #           1 executed
     #           2 scheduled
     # par: parameters, for request data will be the data, for switch mode will be the the 
-    telemetry=cmdtype+","+status+","+tm_par
+    telemetry=cmdtype+","+str(status)+","+tm_par
     return telemetry
 
 
-def time_is_ok(hh,mm,ss,xx):
+def time_is_ok(hh,mm,ss):
     # if xx is not an empty string the format is invalid
-    if xx!="": 
+
+        #if the format is valid hh, mm, ss must be number
+    try :
+        hh=int(hh)
+        mm=int(mm)
+        ss=int(ss)
+    except:
         return False
     else:
-        #if the format is valid hh, mm, ss must be number
-        try :
-            hh=int(hh)
-            mm=int(mm)
-            ss=int(ss)
-        except:
+        # moreover those number must be in a certain range
+        if 0>hh>24 or 0>mm>60 or 0>ss>60 :
             return False
         else:
-            # moreover those number must be in a certain range
-            if 0>hh>24 or 0>mm>60 or 0>ss>60 :
-                return False
-            else:
-                return True
+            return True
             
 def chose_what_to_do(status, time, cmdtype, par):
     if status==0:
@@ -194,6 +193,6 @@ def chose_what_to_do(status, time, cmdtype, par):
                 tm_par=""
     return tm_par
 
-main()
+Communications_Interface()
 # Stop the background clock
 clock.stop_clock()

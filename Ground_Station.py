@@ -3,7 +3,7 @@ import random
 
 def main():
     # **CHANGE THIS to the actual IP address of the Satellite computer**
-    HOST = 'SATELLITE_IP_ADDRESS' 
+    HOST = socket.gethostname() 
     PORT = 12345    # Must match the satellite's port
 
     # 1. Create a socket object
@@ -16,7 +16,7 @@ def main():
             while True:
                 # 3. Send telecommand
                 command = send_TC()
-                if command() == '0':
+                if command == '0':
                     break
                 command=Alter_TC(command)
                 s.sendall(command.encode())
@@ -43,7 +43,7 @@ def send_TC():
     2: set onboard time
     3: request housekeeping data
     4: request payload data""")
-    command=input("Enter Telecommand number: ")
+    command=int(input("Enter Telecommand number: "))
     match command:
         case 0:
             comm=0
@@ -101,9 +101,9 @@ def Set_onboard_time():
         print("Enter a time in the format hh:mm:ss")
         time=input("Time: ")
         # I split the time in hour minutes and second + an additional part (xx) to check for invalid formatting
-        hh,mm,ss,xx=time.split(sep=":")
+        hh,mm,ss=time.split(sep=":")
         # if xx is not an empty string the format is invalid
-        if time_is_ok(hh,mm,ss,xx):
+        if time_is_ok(hh,mm,ss):
             break
         else:
             print("Invalid time format\n")
@@ -128,17 +128,14 @@ def Request_PL():
 
 def time_tag():
     while True:
-        print("Schedule command: enter a time in the format hh:mm:ss, enter - if not time tagged")
+        print("Schedule command: enter a time in the format hh:mm:ss")
         tt=input("Schedule: ")
-        if tt=="-":         #if it is not time tagged the first digit will be 0 and the rest is set to a default value
-            return "0/00:00:00,"
-        else :
-            # I split the time in hour minutes and second + an additional part (xx) to check for invalid formatting
-            hh,mm,ss,xx=tt.split(sep=":")
-            if time_is_ok(hh,mm,ss,xx):
-                break
-            else:
-                print("invalid time format\n")
+         # I split the time in hour minutes and second + an additional part (xx) to check for invalid formatting
+        hh,mm,ss=tt.split(sep=":")
+        if time_is_ok(hh,mm,ss):
+            break
+        else:
+            print("invalid time format\n")
     # if evrything is fine the function creates the time tag
     return "1/"+tt+","  #if it is time tagged the first digit will be 1
 
@@ -149,7 +146,7 @@ def Interpret_TM(telemetry):
     # making sure that the telemetry is a string
     telemetry=str(telemetry)
     if telemetry=="ACK":
-        print("Telecommand received")
+        print("Telemetry received")
     elif telemetry=="NAK":
         print("Unknown telecommand")
     else:
@@ -209,21 +206,20 @@ def Alter_TC(command):
         command="".join(char_list)
     return command
 
-def time_is_ok(hh,mm,ss,xx):
-    # if xx is not an empty string the format is invalid
-    if xx!="": 
+def time_is_ok(hh,mm,ss):
+# if xx is not an empty string the format is invalid
+    #if the format is valid hh, mm, ss must be number
+    try :
+        hh=int(hh)
+        mm=int(mm)
+        ss=int(ss)
+    except:
         return False
     else:
-        #if the format is valid hh, mm, ss must be number
-        try :
-            hh=int(hh)
-            mm=int(mm)
-            ss=int(ss)
-        except:
+        # moreover those number must be in a certain range
+        if 0>hh>24 or 0>mm>60 or 0>ss>60 :
             return False
         else:
-            # moreover those number must be in a certain range
-            if 0>hh>24 or 0>mm>60 or 0>ss>60 :
-                return False
-            else:
-                return True
+            return True
+if __name__ == "__main__":
+    main()            
