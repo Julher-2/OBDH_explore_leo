@@ -68,11 +68,11 @@ def Communications_Interface():
                     TC = data.decode()
                     status, time, cmdtype, par=Interpret_TC(TC)
                     
-                    if status != 0:
-                        ACK="ACK"
-                    else:
-                        ACK="NAK"
-                    conn.sendall(ACK.encode())
+                    #if status != 0:
+                    #    ACK="ACK"
+                    #else:
+                    #    ACK="NAK"
+                    #conn.sendall(ACK.encode())
                     
 
                     # chose what function to call basing on the command and get the relative telemetry back
