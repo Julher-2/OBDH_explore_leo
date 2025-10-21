@@ -3,7 +3,7 @@ import random
 
 def main():
     # **CHANGE THIS to the actual IP address of the Satellite computer**
-    HOST = 'SATELLITE_IP_ADDRESS' 
+    HOST = socket.gethostname() 
     PORT = 12345    # Must match the satellite's port
 
     # 1. Create a socket object
@@ -16,15 +16,21 @@ def main():
             while True:
                 # 3. Send telecommand
                 command = send_TC()
-                if command() == '0':
+                if command == "0":
                     break
                 command=Alter_TC(command)
-                s.sendall(command.encode())
+                s.sendall((command+ "\n").encode())
+                
+            
                 
                 # 4. Receive telemetry
                 data = s.recv(1024)
-                telemetry = data.decode()
-                Interpret_TM(telemetry)
+                response = data.decode()  
+
+                if response.startswith("FILE:"):
+                    Open_file(response, s) 
+                else:
+                    Interpret_TM(response)
 
         except ConnectionRefusedError:
             print("Error: Could not connect to the Satellite. Check IP/Port and if the satellite is on.")
@@ -32,6 +38,23 @@ def main():
             print(f"An error occurred: {e}")
 
 
+def Open_file(header, client_socket):
+    if header.startswith("FILE:"):
+        filesize = int(header.split(":")[1])
+        client_socket.send(b"READY")  # acknowledge readiness
+
+        received = 0
+        with open("received_data.txt", "wb") as f:
+            while received < filesize:
+                chunk = client_socket.recv(1024)
+                if not chunk:
+                    break
+                f.write(chunk)
+                received += len(chunk)
+
+        print(f"File received ({received} bytes) and saved as 'received_data.txt'.")
+    else:
+        print("Received from SC:", header)
 
 
 
@@ -43,10 +66,10 @@ def send_TC():
     2: set onboard time
     3: request housekeeping data
     4: request payload data""")
-    command=input("Enter Telecommand number: ")
+    command=int(input("Enter Telecommand number: "))
     match command:
         case 0:
-            comm=0
+            comm="0"
         case 1:
             comm=Mode_change()
         case 2:
@@ -101,9 +124,9 @@ def Set_onboard_time():
         print("Enter a time in the format hh:mm:ss")
         time=input("Time: ")
         # I split the time in hour minutes and second + an additional part (xx) to check for invalid formatting
-        hh,mm,ss,xx=time.split(sep=":")
+        hh,mm,ss=time.split(sep=":")
         # if xx is not an empty string the format is invalid
-        if time_is_ok(hh,mm,ss,xx):
+        if time_is_ok(hh,mm,ss):
             break
         else:
             print("Invalid time format\n")
@@ -120,25 +143,32 @@ def Set_onboard_time():
 
 
 def Request_HK():
-    return "0/00:00:00,"+"3/"
+    return "0/00:00:00,"+"3/00"
 
 
 def Request_PL():
-    return "0/00:00:00,"+"4/"
+    return "0/00:00:00,"+"4/00"
 
 def time_tag():
     while True:
-        print("Schedule command: enter a time in the format hh:mm:ss, enter - if not time tagged")
+        print("Schedule command: enter a time in the format hh:mm:ss, or enter 0 to not schedule")
         tt=input("Schedule: ")
-        if tt=="-":         #if it is not time tagged the first digit will be 0 and the rest is set to a default value
-            return "0/00:00:00,"
-        else :
+        print(tt)
+        try:
+            int(tt)
+        except:
             # I split the time in hour minutes and second + an additional part (xx) to check for invalid formatting
-            hh,mm,ss,xx=tt.split(sep=":")
-            if time_is_ok(hh,mm,ss,xx):
-                break
-            else:
+            try:
+                hh,mm,ss=tt.split(sep=":")
+            except:
                 print("invalid time format\n")
+            else:
+                if time_is_ok(hh,mm,ss):
+                    break
+                else:
+                    print("invalid time format\n")
+        else:
+            return "0/00:00:00,"
     # if evrything is fine the function creates the time tag
     return "1/"+tt+","  #if it is time tagged the first digit will be 1
 
@@ -149,59 +179,59 @@ def Interpret_TM(telemetry):
     # making sure that the telemetry is a string
     telemetry=str(telemetry)
     if telemetry=="ACK":
-        print("Telecommand received")
+        print("Telemetry received")
     elif telemetry=="NAK":
         print("Unknown telecommand")
     else:
         cmd, st, par=telemetry.split(sep=",")
-        match cmd:
-            case "1":
+        match int(cmd):
+            case 1:
                 # Set mode
-                match par:
-                    case "0":
+                match int(par):
+                    case 0:
                         mode="Safe mode"
-                    case "1": 
+                    case 1: 
                         mode="Science mode"
-                    case "2":
+                    case 2:
                         mode= "Downlink mode"
-                    case "3": 
+                    case 3: 
                         mode="Detumbling mode"
-                    case "4":
+                    case 4:
                         mode="Stand-by mode"
                     case _:
                         mode="-"
                 # Set operation status
-                match st:
-                    case "0":
+                match int(st):
+                    case 0:
                         status="Failure"
-                    case "1":
+                    case 1:
                         status="Success"
-                    case "2":
+                    case 2:
                         status="Scheduled"
                     case _:
                         status="-"
                 print("Switch to "+mode+" , Status: "+status)
-            case "2":
-                match st:
-                    case "0":
+            case 2:
+                match int(st):
+                    case 0:
                         status="Failure"
-                    case "1":
+                    case 1:
                         status="Success"
-                    case "2":
+                    case 2:
                         status="Scheduled"
                     case _:
                         status="-"
                 print("Onboard time set to "+par+" , Status: "+status)
-            case "3":
+            case 3:
                 print(par)
-            case "4":
+            case 4:
                 print(par)
             case _:
                 print("error during transmission")
 
 def Alter_TC(command):
-    alter=random.randint(0,10)
-    if alter>8:
+    alter=random.randint(0,100)
+    if alter>95:
         char_list=list(command)
         max_index = len(command) - 1
         random_index = random.randint(0, max_index)
@@ -209,21 +239,20 @@ def Alter_TC(command):
         command="".join(char_list)
     return command
 
-def time_is_ok(hh,mm,ss,xx):
-    # if xx is not an empty string the format is invalid
-    if xx!="": 
+def time_is_ok(hh,mm,ss):
+# if xx is not an empty string the format is invalid
+    #if the format is valid hh, mm, ss must be number
+    try :
+        hh=int(hh)
+        mm=int(mm)
+        ss=int(ss)
+    except:
         return False
     else:
-        #if the format is valid hh, mm, ss must be number
-        try :
-            hh=int(hh)
-            mm=int(mm)
-            ss=int(ss)
-        except:
+        # moreover those number must be in a certain range
+        if 0>hh>24 or 0>mm>60 or 0>ss>60 :
             return False
         else:
-            # moreover those number must be in a certain range
-            if 0>hh>24 or 0>mm>60 or 0>ss>60 :
-                return False
-            else:
-                return True
+            return True
+if __name__ == "__main__":
+    main()            

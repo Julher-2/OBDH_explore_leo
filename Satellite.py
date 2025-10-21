@@ -2,19 +2,68 @@ import socket
 import datetime
 import housekeeping as hk
 from onboard_time import OnboardTime
+import threading
+import time
+import numpy as np
+from housekeeping import ModeManager, battery_level, spinning_ratio, temperature
+from payload import heartbeat, send_payload
+
+from payload import heartbeat, send_payload
+
+
 
 
 # Start onboard clock
 clock = OnboardTime(tick_interval=1)
 clock.start_clock()
 
-def main():
+def heartbeatcheck(stop_event):
+	a = 0
+	while not stop_event.is_set():
+
+		hb= heartbeat()[0]
+		if hb == 1:
+			a = 0
+		else:
+			a +=1
+			if a>=5:
+				print("No heartbeat detected, offline")
+				break
+		time.sleep(0.5)
+
+def background_loop(mm: ModeManager, stop_event: threading.Event, interval: float = 5.0):
+    """Prints housekeeping data and current mode every interval seconds."""
+    step = 0
+    while not stop_event.is_set():
+        step += 1
+        batt = battery_level()
+        spin = spinning_ratio()
+        temp = temperature()
+        mode = mm.get_mode()
+
+        ts = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        print(f"[{ts}] STEP {step:05d} | MODE={mode:10s} | BATT={batt:6.2f}% | SPIN={spin:6.1f}°/s | TEMP={temp:6.1f}°C")
+
+        if stop_event.wait(interval):
+            break
+    print("Background loop stopped.")
 
 
+def Communications_Interface():
 
-
-    HOST = '0.0.0.0'  # Listen on all available interfaces
+    HOST = socket.gethostname()  # Listen on all available interfaces
     PORT = 12345      # Port to listen on (choose any unused port > 1024)
+
+    lock = threading.Lock()
+    stop_event = threading.Event()
+    mm = ModeManager()
+
+    # Start housekeeping background loop
+    bg_thread = threading.Thread(target=background_loop, args=(mm, stop_event, 5.0), daemon=True)
+    bg_thread.start()
+
+    hb_thread = threading.Thread(target=heartbeatcheck, args=(stop_event,), daemon=True)
+    hb_thread.start()   
 
     # 1. Create a socket object
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -24,14 +73,20 @@ def main():
         s.listen()
         print(f"Satellite (Server) listening on port {PORT}...")
         
+
+
         # Accept a connection
         conn, addr = s.accept()
         with conn:
             print(f"Ground Station connected from {addr}")
             
             while True:
-                # Receive telecommand from ground station
-                data = conn.recv(1024)
+                
+                data = b""
+                while not data.endswith(b"\n"):
+                     data += conn.recv(1024)
+        
+
                 if not data:
                     break
                 else:
@@ -40,15 +95,14 @@ def main():
                     TC = data.decode()
                     status, time, cmdtype, par=Interpret_TC(TC)
                     
-                    if status != 0:
-                        ACK="ACK"
-                    else:
-                        ACK="NAK"
-                    conn.sendall(ACK.encode())
+                    #if status != 0:
+                    #    ACK="ACK"
+                    #else:
+                    #    ACK="NAK"
+                    #conn.sendall(ACK.encode())
                     
-
                     # chose what function to call basing on the command and get the relative telemetry back
-                    tm_par=chose_what_to_do(status, time, cmdtype, par)
+                    tm_par=chose_what_to_do(status, time, cmdtype, par, mm, conn)
 
 
 
@@ -58,6 +112,7 @@ def main():
                     conn.sendall(telemetry.encode())
 
     print("Connection closed.")
+
 
 
 def Interpret_TC(telecommand):
@@ -82,11 +137,10 @@ def Interpret_tt(tt):
         print("time tagget commant: to be executed at "+time)
         #if the command is time tagged check that the time is in the correct format
         # Split the time in hour minutes and second + an additional part (xx) to check for invalid formatting
-        hh,mm,ss,xx=time.split(sep=":")
+        hh,mm,ss=time.split(sep=":")
         # if xx is not an empty string the format is invalid
-        if time_is_ok(hh,mm,ss,xx):
+        if time_is_ok(hh,mm,ss):
             status=2
-            time=datetime.time(hour=int(hh),minute=int(mm),second=int(ss)).isoformat
         else:
             status=0
             time=""
@@ -102,37 +156,39 @@ def Interpret_cmd(cmd):
     cmdtype, par=cmd.split(sep="/")
     # chacking the command is readable and properly formatting the parameter 
     # of mode change to give as input to the function
-    match cmdtype:
-        case "1":
-            match par:
-                case "0":
+    match int(cmdtype):
+        case 1:
+            match int(par):
+                case 0:
                     par="safe"
                     status=1
-                case "1":
+                case 1:
                     par="science"
                     status=1
-                case "2":
+                case 2:
                     par="downlink"
                     status=1
-                case "3":
+                case 3:
                     par="detumbling"
                     status=1
-                case "4":
+                case 4:
                     par="stand-by"
                     status=1
                 case _:
 
                     status=0
-        case "2":
-            hh,mm,ss,xx=par.split(sep=":")
-            if time_is_ok(hh,mm,ss,xx):
-                par=datetime.time(hour=hh,minute=mm,second=ss).isoformat
+        case 2:
+            hh,mm,ss=par.split(sep=":")
+            if time_is_ok(hh,mm,ss):
+                today=datetime.date.today()
+                today_str=today.strftime("%Y-%m-%d")
+                par=today_str+"T"+par+"Z"
                 status=1
             else:
                 status=0
-        case "3":
+        case 3:
             status=1
-        case "4":
+        case 4:
             status=1
         case _:
             status=0
@@ -145,55 +201,64 @@ def Send_TM(status,cmdtype,tm_par):
     #           1 executed
     #           2 scheduled
     # par: parameters, for request data will be the data, for switch mode will be the the 
-    telemetry=cmdtype+","+status+","+tm_par
+    telemetry=cmdtype+","+str(status)+","+tm_par
     return telemetry
 
 
-def time_is_ok(hh,mm,ss,xx):
+def time_is_ok(hh,mm,ss):
     # if xx is not an empty string the format is invalid
-    if xx!="": 
+
+        #if the format is valid hh, mm, ss must be number
+    try :
+        hh=int(hh)
+        mm=int(mm)
+        ss=int(ss)
+    except:
         return False
     else:
-        #if the format is valid hh, mm, ss must be number
-        try :
-            hh=int(hh)
-            mm=int(mm)
-            ss=int(ss)
-        except:
+        # moreover those number must be in a certain range
+        if 0>hh>24 or 0>mm>60 or 0>ss>60 :
             return False
         else:
-            # moreover those number must be in a certain range
-            if 0>hh>24 or 0>mm>60 or 0>ss>60 :
-                return False
-            else:
-                return True
+            return True
             
-def chose_what_to_do(status, time, cmdtype, par):
-    if status==0:
-        tm_par="-"
-    elif status==2:
-        #!!! call the scheduler
-        tm_par=par
+def chose_what_to_do(status, time, cmdtype, par, mm, conn):
+    if status == 0:
+        tm_par = "-"
+    elif status == 2:
+        # call the scheduler (time-tagged)
+        tm_par = par
     else:
-        match cmdtype:
-            case "1":
-                #!!! here we need to call the telecommand function to change the mode
-                tm_par=par
-            case "2":
-                # Change onboard time via TC 
-                clock.set_time(par)        
-                tm_par=par
-            case "3":
-                #!!! here we need to get HK data and store it in a string
-                bl=hk.battery_level()
-                sr=hk.spinning_ratio()
-                temp=hk.temperature()
-                tm_par="Battery level: "+bl+"\nSpinning ratio: "+sr+"\nTemperature: "+temp
-            case "4":
-                #!!! here we need to get PL data and store it in a string
-                tm_par=""
+        match int(cmdtype):
+            case 1:  # Mode change
+                mm.set_mode(par)       # <-- add this line
+                match par:
+                    case "safe":
+                        par=0
+                    case "science":
+                        par=1
+                    case "downlink":
+                        par=2
+                    case "detumbling":
+                        par=3
+                    case "stand-by":
+                        par=4
+                tm_par = str(par)
+            case 2:
+                clock.set_time(par)
+                tm_par = par
+            case 3:
+                bl = hk.battery_level()
+                sr = hk.spinning_ratio()
+                temp = hk.temperature()
+                tm_par = f"Battery: {bl:.2f}%, Spin: {sr:.2f}, Temp: {temp:.2f}"
+            case 4:
+                send_payload(conn)
+                tm_par = "-"
+            case _:
+                tm_par = "-"
     return tm_par
 
-main()
+Communications_Interface()
 # Stop the background clock
 clock.stop_clock()
