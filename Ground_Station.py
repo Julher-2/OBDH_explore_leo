@@ -161,47 +161,47 @@ def Interpret_TM(telemetry):
         print("Unknown telecommand")
     else:
         cmd, st, par=telemetry.split(sep=",")
-        match cmd:
-            case "1":
+        match int(cmd):
+            case 1:
                 # Set mode
-                match par:
-                    case "0":
+                match int(par):
+                    case 0:
                         mode="Safe mode"
-                    case "1": 
+                    case 1: 
                         mode="Science mode"
-                    case "2":
+                    case 2:
                         mode= "Downlink mode"
-                    case "3": 
+                    case 3: 
                         mode="Detumbling mode"
-                    case "4":
+                    case 4:
                         mode="Stand-by mode"
                     case _:
                         mode="-"
                 # Set operation status
-                match st:
-                    case "0":
+                match int(st):
+                    case 0:
                         status="Failure"
-                    case "1":
+                    case 1:
                         status="Success"
-                    case "2":
+                    case 2:
                         status="Scheduled"
                     case _:
                         status="-"
                 print("Switch to "+mode+" , Status: "+status)
-            case "2":
-                match st:
-                    case "0":
+            case 2:
+                match int(st):
+                    case 0:
                         status="Failure"
-                    case "1":
+                    case 1:
                         status="Success"
-                    case "2":
+                    case 2:
                         status="Scheduled"
                     case _:
                         status="-"
                 print("Onboard time set to "+par+" , Status: "+status)
-            case "3":
+            case 3:
                 print(par)
-            case "4":
+            case 4:
                 print(par)
             case _:
                 print("error during transmission")

@@ -9,6 +9,7 @@ from payload import heartbeat, send_payload
 
 
 
+
 # Start onboard clock
 clock = OnboardTime(tick_interval=1)
 clock.start_clock()
@@ -225,7 +226,7 @@ def chose_what_to_do(status, time, cmdtype, par, mm, conn):
         match int(cmdtype):
             case 1:  # Mode change
                 mm.set_mode(par)       # <-- add this line
-                tm_par = f"Mode changed to {mm.get_mode()}"
+                tm_par = par
             case 2:
                 clock.set_time(par)
                 tm_par = par
