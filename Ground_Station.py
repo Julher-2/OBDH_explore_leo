@@ -131,9 +131,9 @@ def time_tag():
         print("Schedule command: enter a time in the format hh:mm:ss, or enter 0 to not schedule")
         tt=input("Schedule: ")
         print(tt)
-        if tt=="0":
-            return "0/00:00:00,"
-        else:
+        try:
+            int(tt)
+        except:
             # I split the time in hour minutes and second + an additional part (xx) to check for invalid formatting
             try:
                 hh,mm,ss=tt.split(sep=":")
@@ -144,7 +144,9 @@ def time_tag():
                     break
                 else:
                     print("invalid time format\n")
-        # if evrything is fine the function creates the time tag
+        else:
+            return "0/00:00:00,"
+    # if evrything is fine the function creates the time tag
     return "1/"+tt+","  #if it is time tagged the first digit will be 1
 
 
@@ -205,8 +207,8 @@ def Interpret_TM(telemetry):
                 print("error during transmission")
 
 def Alter_TC(command):
-    alter=random.randint(0,10)
-    if alter>8:
+    alter=random.randint(0,100)
+    if alter>95:
         char_list=list(command)
         max_index = len(command) - 1
         random_index = random.randint(0, max_index)

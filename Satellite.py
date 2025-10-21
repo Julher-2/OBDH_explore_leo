@@ -130,29 +130,29 @@ def Interpret_cmd(cmd):
     cmdtype, par=cmd.split(sep="/")
     # chacking the command is readable and properly formatting the parameter 
     # of mode change to give as input to the function
-    match cmdtype:
-        case "1":
-            match par:
-                case "0":
+    match int(cmdtype):
+        case 1:
+            match int(par):
+                case 0:
                     par="safe"
                     status=1
                     mm=""
-                case "1":
+                case 1:
                     par="science"
                     status=1
-                case "2":
+                case 2:
                     par="downlink"
                     status=1
-                case "3":
+                case 3:
                     par="detumbling"
                     status=1
-                case "4":
+                case 4:
                     par="stand-by"
                     status=1
                 case _:
 
                     status=0
-        case "2":
+        case 2:
             hh,mm,ss=par.split(sep=":")
             if time_is_ok(hh,mm,ss):
                 today=datetime.date.today()
@@ -161,9 +161,9 @@ def Interpret_cmd(cmd):
                 status=1
             else:
                 status=0
-        case "3":
+        case 3:
             status=1
-        case "4":
+        case 4:
             status=1
         case _:
             status=0
@@ -205,19 +205,19 @@ def chose_what_to_do(status, time, cmdtype, par, mm):
         # call the scheduler (time-tagged)
         tm_par = par
     else:
-        match cmdtype:
-            case "1":  # Mode change
+        match int(cmdtype):
+            case 1:  # Mode change
                 mm.set_mode(par)       # <-- add this line
                 tm_par = f"Mode changed to {mm.get_mode()}"
-            case "2":
+            case 2:
                 clock.set_time(par)
                 tm_par = par
-            case "3":
+            case 3:
                 bl = hk.battery_level()
                 sr = hk.spinning_ratio()
                 temp = hk.temperature()
                 tm_par = f"Battery: {bl:.2f}%, Spin: {sr:.2f}, Temp: {temp:.2f}"
-            case "4":
+            case 4:
                 tm_par = "Payload data TBD"
             case _:
                 tm_par = "-"
