@@ -16,7 +16,7 @@ def main():
             while True:
                 # 3. Send telecommand
                 command = send_TC()
-                if command == '0':
+                if command == 0:
                     break
                 command=Alter_TC(command)
                 s.sendall(command.encode())
