@@ -19,7 +19,7 @@ def main():
                 if command == "0":
                     break
                 command=Alter_TC(command)
-                s.sendall(command.encode())
+                s.sendall((command+ "\n").encode())
                 
             
                 
