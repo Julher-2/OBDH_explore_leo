@@ -115,7 +115,6 @@ def Interpret_tt(tt):
         # if xx is not an empty string the format is invalid
         if time_is_ok(hh,mm,ss):
             status=2
-            time=datetime.time(hour=int(hh),minute=int(mm),second=int(ss)).isoformat
         else:
             status=0
             time=""
@@ -156,7 +155,9 @@ def Interpret_cmd(cmd):
         case "2":
             hh,mm,ss=par.split(sep=":")
             if time_is_ok(hh,mm,ss):
-                par=datetime.time(hour=int(hh),minute=int(mm),second=int(ss)).isoformat
+                today=datetime.date.today()
+                today_str=today.strftime("%Y-%m-%d")
+                par=today_str+"T"+par+"Z"
                 status=1
             else:
                 status=0
