@@ -155,7 +155,6 @@ def Interpret_cmd(cmd):
                 case 0:
                     par="safe"
                     status=1
-                    mm=""
                 case 1:
                     par="science"
                     status=1
@@ -226,7 +225,18 @@ def chose_what_to_do(status, time, cmdtype, par, mm, conn):
         match int(cmdtype):
             case 1:  # Mode change
                 mm.set_mode(par)       # <-- add this line
-                tm_par = par
+                match par:
+                    case "safe":
+                        par=0
+                    case "science":
+                        par=1
+                    case "downlink":
+                        par=2
+                    case "detumbling":
+                        par=3
+                    case "stand-by":
+                        par=4
+                tm_par = str(par)
             case 2:
                 clock.set_time(par)
                 tm_par = par
