@@ -5,11 +5,27 @@ from onboard_time import OnboardTime
 import threading
 import time
 from housekeeping import ModeManager, battery_level, spinning_ratio, temperature
+from payload import heartbeat, send_payload
+
 
 
 # Start onboard clock
 clock = OnboardTime(tick_interval=1)
 clock.start_clock()
+
+def heartbeatcheck(stop_event):
+	a = 0
+	while not stop_event.is_set():
+
+		hb= heartbeat()[0]
+		if hb == 1:
+			a = 0
+		else:
+			a +=1
+			if a>=5:
+				print("No heartbeat detected, offline")
+				break
+		time.sleep(0.5)
 
 def background_loop(mm: ModeManager, stop_event: threading.Event, interval: float = 5.0):
     """Prints housekeeping data and current mode every interval seconds."""
@@ -41,6 +57,9 @@ def Communications_Interface():
     # Start housekeeping background loop
     bg_thread = threading.Thread(target=background_loop, args=(mm, stop_event, 5.0), daemon=True)
     bg_thread.start()
+
+    hb_thread = threading.Thread(target=heartbeatcheck, args=(stop_event,), daemon=True)
+    hb_thread.start()   
 
     # 1. Create a socket object
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -74,9 +93,8 @@ def Communications_Interface():
                         ACK="NAK"
                     conn.sendall(ACK.encode())
                     
-
                     # chose what function to call basing on the command and get the relative telemetry back
-                    tm_par=chose_what_to_do(status, time, cmdtype, par, mm)
+                    tm_par=chose_what_to_do(status, time, cmdtype, par, mm, conn)
 
 
 
@@ -163,11 +181,11 @@ def Interpret_cmd(cmd):
                 status=0
         case "3":
             status=1
+
         case "4":
             status=1
         case _:
             status=0
-    print(status,cmdtype,par)
     return status,cmdtype,par
 
 def Send_TM(status,cmdtype,tm_par):
@@ -198,7 +216,7 @@ def time_is_ok(hh,mm,ss):
         else:
             return True
             
-def chose_what_to_do(status, time, cmdtype, par, mm):
+def chose_what_to_do(status, time, cmdtype, par, mm, conn):
     if status == 0:
         tm_par = "-"
     elif status == 2:
@@ -218,7 +236,9 @@ def chose_what_to_do(status, time, cmdtype, par, mm):
                 temp = hk.temperature()
                 tm_par = f"Battery: {bl:.2f}%, Spin: {sr:.2f}, Temp: {temp:.2f}"
             case "4":
-                tm_par = "Payload data TBD"
+                if conn is not None:
+                    send_payload(conn)  # <-- send payload over TCP
+                    tm_par = "Payload sent"
             case _:
                 tm_par = "-"
     return tm_par

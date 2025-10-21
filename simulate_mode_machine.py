@@ -1,14 +1,14 @@
 # simulate_threaded_verbose.py
 import threading
 import time
+import numpy as np
+import random
+import os
 from housekeeping import ModeMachine, battery_level, spinning_ratio, temperature, State
 
+
+
 def background_loop(mm: ModeMachine, stop_event: threading.Event, lock: threading.Lock, interval: float = 5.0):
-    """
-    Background thread: every `interval` seconds sample housekeeping and call the mode machine updates.
-    Prints housekeeping values and mode before/after (and highlights transitions).
-    Stop when stop_event is set.
-    """
     step = 0
     while not stop_event.is_set():
         step += 1
