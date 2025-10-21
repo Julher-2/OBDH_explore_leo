@@ -16,7 +16,7 @@ def main():
             while True:
                 # 3. Send telecommand
                 command = send_TC()
-                if command == '0':
+                if command == "0":
                     break
                 command=Alter_TC(command)
                 s.sendall(command.encode())
@@ -69,7 +69,7 @@ def send_TC():
     command=int(input("Enter Telecommand number: "))
     match command:
         case 0:
-            comm=0
+            comm="0"
         case 1:
             comm=Mode_change()
         case 2:
@@ -143,22 +143,32 @@ def Set_onboard_time():
 
 
 def Request_HK():
-    return "0/00:00:00,"+"3/"
+    return "0/00:00:00,"+"3/00"
 
 
 def Request_PL():
-    return "0/00:00:00,"+"4/"
+    return "0/00:00:00,"+"4/00"
 
 def time_tag():
     while True:
-        print("Schedule command: enter a time in the format hh:mm:ss")
+        print("Schedule command: enter a time in the format hh:mm:ss, or enter 0 to not schedule")
         tt=input("Schedule: ")
-         # I split the time in hour minutes and second + an additional part (xx) to check for invalid formatting
-        hh,mm,ss=tt.split(sep=":")
-        if time_is_ok(hh,mm,ss):
-            break
+        print(tt)
+        try:
+            int(tt)
+        except:
+            # I split the time in hour minutes and second + an additional part (xx) to check for invalid formatting
+            try:
+                hh,mm,ss=tt.split(sep=":")
+            except:
+                print("invalid time format\n")
+            else:
+                if time_is_ok(hh,mm,ss):
+                    break
+                else:
+                    print("invalid time format\n")
         else:
-            print("invalid time format\n")
+            return "0/00:00:00,"
     # if evrything is fine the function creates the time tag
     return "1/"+tt+","  #if it is time tagged the first digit will be 1
 
@@ -174,54 +184,54 @@ def Interpret_TM(telemetry):
         print("Unknown telecommand")
     else:
         cmd, st, par=telemetry.split(sep=",")
-        match cmd:
-            case "1":
+        match int(cmd):
+            case 1:
                 # Set mode
-                match par:
-                    case "0":
+                match int(par):
+                    case 0:
                         mode="Safe mode"
-                    case "1": 
+                    case 1: 
                         mode="Science mode"
-                    case "2":
+                    case 2:
                         mode= "Downlink mode"
-                    case "3": 
+                    case 3: 
                         mode="Detumbling mode"
-                    case "4":
+                    case 4:
                         mode="Stand-by mode"
                     case _:
                         mode="-"
                 # Set operation status
-                match st:
-                    case "0":
+                match int(st):
+                    case 0:
                         status="Failure"
-                    case "1":
+                    case 1:
                         status="Success"
-                    case "2":
+                    case 2:
                         status="Scheduled"
                     case _:
                         status="-"
                 print("Switch to "+mode+" , Status: "+status)
-            case "2":
-                match st:
-                    case "0":
+            case 2:
+                match int(st):
+                    case 0:
                         status="Failure"
-                    case "1":
+                    case 1:
                         status="Success"
-                    case "2":
+                    case 2:
                         status="Scheduled"
                     case _:
                         status="-"
                 print("Onboard time set to "+par+" , Status: "+status)
-            case "3":
+            case 3:
                 print(par)
-            case "4":
+            case 4:
                 print(par)
             case _:
                 print("error during transmission")
 
 def Alter_TC(command):
-    alter=random.randint(0,10)
-    if alter>8:
+    alter=random.randint(0,100)
+    if alter>95:
         char_list=list(command)
         max_index = len(command) - 1
         random_index = random.randint(0, max_index)
