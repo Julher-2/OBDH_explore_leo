@@ -81,8 +81,12 @@ def Communications_Interface():
             print(f"Ground Station connected from {addr}")
             
             while True:
-                # Receive telecommand from ground station
-                data = conn.recv(1024)
+                
+                data = b""
+                while not data.endswith(b"\n"):
+                     data += conn.recv(1024)
+        
+
                 if not data:
                     break
                 else:
@@ -249,8 +253,8 @@ def chose_what_to_do(status, time, cmdtype, par, mm, conn):
                 temp = hk.temperature()
                 tm_par = f"Battery: {bl:.2f}%, Spin: {sr:.2f}, Temp: {temp:.2f}"
             case 4:
-                tm_par = "Payload data TBD"
                 send_payload(conn)
+                tm_par = "-"
             case _:
                 tm_par = "-"
     return tm_par
