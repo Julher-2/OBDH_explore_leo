@@ -4,12 +4,29 @@ import housekeeping as hk
 from onboard_time import OnboardTime
 import threading
 import time
+import numpy as np
 from housekeeping import ModeManager, battery_level, spinning_ratio, temperature
+from payload import heartbeat, send_payload
+
 
 
 # Start onboard clock
 clock = OnboardTime(tick_interval=1)
 clock.start_clock()
+
+def heartbeatcheck(stop_event):
+	a = 0
+	while not stop_event.is_set():
+
+		hb= heartbeat()[0]
+		if hb == 1:
+			a = 0
+		else:
+			a +=1
+			if a>=5:
+				print("No heartbeat detected, offline")
+				break
+		time.sleep(0.5)
 
 def background_loop(mm: ModeManager, stop_event: threading.Event, interval: float = 5.0):
     """Prints housekeeping data and current mode every interval seconds."""
@@ -42,6 +59,9 @@ def Communications_Interface():
     bg_thread = threading.Thread(target=background_loop, args=(mm, stop_event, 5.0), daemon=True)
     bg_thread.start()
 
+    hb_thread = threading.Thread(target=heartbeatcheck, args=(stop_event,), daemon=True)
+    hb_thread.start()   
+
     # 1. Create a socket object
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         # Bind the socket to the port
@@ -68,15 +88,14 @@ def Communications_Interface():
                     TC = data.decode()
                     status, time, cmdtype, par=Interpret_TC(TC)
                     
-                    if status != 0:
-                        ACK="ACK"
-                    else:
-                        ACK="NAK"
-                    conn.sendall(ACK.encode())
+                    #if status != 0:
+                    #    ACK="ACK"
+                    #else:
+                    #    ACK="NAK"
+                    #conn.sendall(ACK.encode())
                     
-
                     # chose what function to call basing on the command and get the relative telemetry back
-                    tm_par=chose_what_to_do(status, time, cmdtype, par, mm)
+                    tm_par=chose_what_to_do(status, time, cmdtype, par, mm, conn)
 
 
 
@@ -130,29 +149,29 @@ def Interpret_cmd(cmd):
     cmdtype, par=cmd.split(sep="/")
     # chacking the command is readable and properly formatting the parameter 
     # of mode change to give as input to the function
-    match cmdtype:
-        case "1":
-            match par:
-                case "0":
+    match int(cmdtype):
+        case 1:
+            match int(par):
+                case 0:
                     par="safe"
                     status=1
                     mm=""
-                case "1":
+                case 1:
                     par="science"
                     status=1
-                case "2":
+                case 2:
                     par="downlink"
                     status=1
-                case "3":
+                case 3:
                     par="detumbling"
                     status=1
-                case "4":
+                case 4:
                     par="stand-by"
                     status=1
                 case _:
 
                     status=0
-        case "2":
+        case 2:
             hh,mm,ss=par.split(sep=":")
             if time_is_ok(hh,mm,ss):
                 today=datetime.date.today()
@@ -161,13 +180,12 @@ def Interpret_cmd(cmd):
                 status=1
             else:
                 status=0
-        case "3":
+        case 3:
             status=1
-        case "4":
+        case 4:
             status=1
         case _:
             status=0
-    print(status,cmdtype,par)
     return status,cmdtype,par
 
 def Send_TM(status,cmdtype,tm_par):
@@ -198,27 +216,28 @@ def time_is_ok(hh,mm,ss):
         else:
             return True
             
-def chose_what_to_do(status, time, cmdtype, par, mm):
+def chose_what_to_do(status, time, cmdtype, par, mm, conn):
     if status == 0:
         tm_par = "-"
     elif status == 2:
         # call the scheduler (time-tagged)
         tm_par = par
     else:
-        match cmdtype:
-            case "1":  # Mode change
+        match int(cmdtype):
+            case 1:  # Mode change
                 mm.set_mode(par)       # <-- add this line
                 tm_par = f"Mode changed to {mm.get_mode()}"
-            case "2":
+            case 2:
                 clock.set_time(par)
                 tm_par = par
-            case "3":
+            case 3:
                 bl = hk.battery_level()
                 sr = hk.spinning_ratio()
                 temp = hk.temperature()
                 tm_par = f"Battery: {bl:.2f}%, Spin: {sr:.2f}, Temp: {temp:.2f}"
-            case "4":
+            case 4:
                 tm_par = "Payload data TBD"
+                send_payload(conn)
             case _:
                 tm_par = "-"
     return tm_par
