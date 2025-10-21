@@ -16,7 +16,7 @@ def main():
             while True:
                 # 3. Send telecommand
                 command = send_TC()
-                if command == 0:
+                if command == "0":
                     break
                 command=Alter_TC(command)
                 s.sendall(command.encode())
@@ -46,7 +46,7 @@ def send_TC():
     command=int(input("Enter Telecommand number: "))
     match command:
         case 0:
-            comm=0
+            comm="0"
         case 1:
             comm=Mode_change()
         case 2:
@@ -120,23 +120,31 @@ def Set_onboard_time():
 
 
 def Request_HK():
-    return "0/00:00:00,"+"3/"
+    return "0/00:00:00,"+"3/00"
 
 
 def Request_PL():
-    return "0/00:00:00,"+"4/"
+    return "0/00:00:00,"+"4/00"
 
 def time_tag():
     while True:
-        print("Schedule command: enter a time in the format hh:mm:ss")
+        print("Schedule command: enter a time in the format hh:mm:ss, or enter 0 to not schedule")
         tt=input("Schedule: ")
-         # I split the time in hour minutes and second + an additional part (xx) to check for invalid formatting
-        hh,mm,ss=tt.split(sep=":")
-        if time_is_ok(hh,mm,ss):
-            break
+        print(tt)
+        if tt=="0":
+            return "0/00:00:00,"
         else:
-            print("invalid time format\n")
-    # if evrything is fine the function creates the time tag
+            # I split the time in hour minutes and second + an additional part (xx) to check for invalid formatting
+            try:
+                hh,mm,ss=tt.split(sep=":")
+            except:
+                print("invalid time format\n")
+            else:
+                if time_is_ok(hh,mm,ss):
+                    break
+                else:
+                    print("invalid time format\n")
+        # if evrything is fine the function creates the time tag
     return "1/"+tt+","  #if it is time tagged the first digit will be 1
 
 
