@@ -140,11 +140,11 @@ def Set_onboard_time():
 
 
 def Request_HK():
-    return "0/00:00:00,"+"3/00"
+    return "0/00:00:00#"+"3/00"
 
 
 def Request_PL():
-    return "0/00:00:00,"+"4/00"
+    return "0/00:00:00#"+"4/00"
 
 def time_tag():
     while True:
@@ -165,9 +165,9 @@ def time_tag():
                 else:
                     print("invalid time format\n")
         else:
-            return "0/00:00:00,"
+            return "0/00:00:00#"
     # if evrything is fine the function creates the time tag
-    return "1/"+tt+","  #if it is time tagged the first digit will be 1
+    return "1/"+tt+"#"  #if it is time tagged the first digit will be 1
 
 
 
@@ -232,7 +232,7 @@ def Alter_TC(command):
         char_list=list(command)
         max_index = len(command) - 1
         random_index = random.randint(0, max_index)
-        char_list[random_index]="#"
+        char_list[random_index]="?"
         command="".join(char_list)
     return command
 

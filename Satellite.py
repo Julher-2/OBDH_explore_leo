@@ -116,11 +116,9 @@ def Communications_Interface():
 
 
 
-def Interpret_TC(telecommand):
-    # making sure that the telemetry is a string
-    telecommand=str(telecommand)
+def Interpret_TC(telecommand: str):
     # split the telecommand into time tag (tt) and the command (cmd)
-    tt, cmd=telecommand.split(sep=",")
+    tt, cmd=telecommand.split(sep="#")
     # interpret each part of the TC
     status_tt,time=Interpret_tt(tt)
     status_cmd,cmdtype,par=Interpret_cmd(cmd)
@@ -130,9 +128,8 @@ def Interpret_TC(telecommand):
     
 
 
-def Interpret_tt(tt):
+def Interpret_tt(tt: str):
     # making sure that tt is a string
-    tt=str(tt)
     istt, time=tt.split(sep="/")
     if int(istt)==1:
         print("time tagget commant: to be executed at "+time)
