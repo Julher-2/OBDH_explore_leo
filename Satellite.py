@@ -226,7 +226,7 @@ def chose_what_to_do(status, time, cmdtype, par, mm, conn):
     if status == 0:
         tm_par = "-"
     elif status == 2:
-        Scheduler.schedule_tc(cmdtype, time)
+        sched.schedule_tc(cmdtype, time)
         tm_par = par
     else:
         match int(cmdtype):
