@@ -7,15 +7,16 @@ import time
 import numpy as np
 from housekeeping import ModeManager, battery_level, spinning_ratio, temperature
 from payload import heartbeat, send_payload
-
-from payload import heartbeat, send_payload
-
-
+from scheduler import Scheduler
 
 
 # Start onboard clock
 clock = OnboardTime(tick_interval=1)
 clock.start_clock()
+
+sched = Scheduler(clock)
+sched.start_tc_check(interval=1)
+
 
 def heartbeatcheck(stop_event):
 	a = 0
@@ -31,7 +32,7 @@ def heartbeatcheck(stop_event):
 				break
 		time.sleep(0.5)
 
-def background_loop(mm: ModeManager, stop_event: threading.Event, interval: float = 5.0):
+def background_loop(mm: ModeManager, clock, stop_event: threading.Event, interval: float = 5.0):
     """Prints housekeeping data and current mode every interval seconds."""
     step = 0
     while not stop_event.is_set():
@@ -41,7 +42,7 @@ def background_loop(mm: ModeManager, stop_event: threading.Event, interval: floa
         temp = temperature()
         mode = mm.get_mode()
 
-        ts = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        ts = ts = clock.get_time().strftime("%Y-%m-%d %H:%M:%S")
         print(f"[{ts}] STEP {step:05d} | MODE={mode:10s} | BATT={batt:6.2f}% | SPIN={spin:6.1f}°/s | TEMP={temp:6.1f}°C")
 
         if stop_event.wait(interval):
@@ -52,18 +53,22 @@ def background_loop(mm: ModeManager, stop_event: threading.Event, interval: floa
 def Communications_Interface():
 
     HOST = socket.gethostname()  # Listen on all available interfaces
-    PORT = 12345      # Port to listen on (choose any unused port > 1024)
+    PORT = 5000      # Port to listen on (choose any unused port > 1024)
 
     lock = threading.Lock()
     stop_event = threading.Event()
     mm = ModeManager()
 
     # Start housekeeping background loop
-    bg_thread = threading.Thread(target=background_loop, args=(mm, stop_event, 5.0), daemon=True)
+
+
+    bg_thread = threading.Thread(target=background_loop,args=(mm, clock, stop_event, 5.0),daemon=True)
     bg_thread.start()
 
     hb_thread = threading.Thread(target=heartbeatcheck, args=(stop_event,), daemon=True)
     hb_thread.start()   
+
+
 
     # 1. Create a socket object
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -129,7 +134,7 @@ def Interpret_tt(tt):
     # making sure that tt is a string
     tt=str(tt)
     istt, time=tt.split(sep="/")
-    if istt==1:
+    if int(istt)==1:
         print("time tagget commant: to be executed at "+time)
         #if the command is time tagged check that the time is in the correct format
         # Split the time in hour minutes and second + an additional part (xx) to check for invalid formatting
@@ -180,6 +185,7 @@ def Interpret_cmd(cmd):
                 today_str=today.strftime("%Y-%m-%d")
                 par=today_str+"T"+par+"Z"
                 status=1
+                
             else:
                 status=0
         case 3:
@@ -219,10 +225,11 @@ def time_is_ok(hh,mm,ss):
             return True
             
 def chose_what_to_do(status, time, cmdtype, par, mm, conn):
+    print(status)
     if status == 0:
         tm_par = "-"
     elif status == 2:
-        # call the scheduler (time-tagged)
+        Scheduler.schedule_tc(cmdtype, time)
         tm_par = par
     else:
         match int(cmdtype):
@@ -256,5 +263,9 @@ def chose_what_to_do(status, time, cmdtype, par, mm, conn):
     return tm_par
 
 Communications_Interface()
+
+time.sleep(10)  # delay needed for successful execution i
+sched.stop_tc_check()
+
 # Stop the background clock
 clock.stop_clock()

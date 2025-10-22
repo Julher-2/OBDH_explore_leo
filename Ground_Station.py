@@ -4,7 +4,7 @@ import random
 def main():
     # **CHANGE THIS to the actual IP address of the Satellite computer**
     HOST = socket.gethostname() 
-    PORT = 12345    # Must match the satellite's port
+    PORT = 5000  # Must match the satellite's port
 
     # 1. Create a socket object
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -19,10 +19,7 @@ def main():
                 if command == "0":
                     break
                 command=Alter_TC(command)
-                s.sendall(command.encode())
-                
-            
-                
+                s.sendall(command.encode()) 
                 # 4. Receive telemetry
                 data = s.recv(1024)
                 response = data.decode()  
