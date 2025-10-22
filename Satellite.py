@@ -251,7 +251,7 @@ def chose_what_to_do(status, time, cmdtype, par, mm, conn):
                 bl = hk.battery_level()
                 sr = hk.spinning_ratio()
                 temp = hk.temperature()
-                tm_par = f"Battery: {bl:.2f}%, Spin: {sr:.2f}, Temp: {temp:.2f}"
+                tm_par = f"Battery: {bl:.2f}%\n Spin: {sr:.2f}\n Temp: {temp:.2f}"
             case 4:
                 send_payload(conn)
                 tm_par = "-"
