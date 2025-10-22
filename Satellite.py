@@ -138,6 +138,9 @@ def Interpret_tt(tt: str):
         hh,mm,ss=time.split(sep=":")
         # if xx is not an empty string the format is invalid
         if time_is_ok(hh,mm,ss):
+            today=datetime.date.today()
+            today_str=today.strftime("%Y-%m-%d")
+            time=today_str+"T"+time+"Z"
             status=2
         else:
             status=0
