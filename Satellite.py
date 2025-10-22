@@ -8,7 +8,7 @@ import numpy as np
 from housekeeping import ModeManager, battery_level, spinning_ratio, temperature
 from payload import heartbeat, send_payload
 
-from payload import heartbeat, send_payload
+from event_logger import EventLogger
 
 
 
@@ -16,6 +16,9 @@ from payload import heartbeat, send_payload
 # Start onboard clock
 clock = OnboardTime(tick_interval=1)
 clock.start_clock()
+
+event_logger = EventLogger(clock)
+
 
 def heartbeatcheck(stop_event):
 	a = 0
@@ -190,6 +193,8 @@ def Interpret_cmd(cmd):
             status=1
         case 4:
             status=1
+        case 5:
+            status=1
         case _:
             status=0
     return status,cmdtype,par
@@ -201,7 +206,7 @@ def Send_TM(status,cmdtype,tm_par):
     #           1 executed
     #           2 scheduled
     # par: parameters, for request data will be the data, for switch mode will be the the 
-    telemetry=cmdtype+","+str(status)+","+tm_par
+    telemetry=cmdtype+"#"+str(status)+"#"+tm_par
     return telemetry
 
 
@@ -223,6 +228,7 @@ def time_is_ok(hh,mm,ss):
             return True
             
 def chose_what_to_do(status, time, cmdtype, par, mm, conn):
+    event_logger.log_event( "Ground Station", cmdtype, par)
     if status == 0:
         tm_par = "-"
     elif status == 2:
@@ -255,6 +261,10 @@ def chose_what_to_do(status, time, cmdtype, par, mm, conn):
             case 4:
                 send_payload(conn)
                 tm_par = "-"
+            case 5:
+                print(str(event_logger.get_events()))
+                tm_par = str(event_logger.get_events())
+                event_logger.clear_log()
             case _:
                 tm_par = "-"
     return tm_par
