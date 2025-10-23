@@ -19,7 +19,10 @@ def main():
                 if command == "0":
                     break
                 command=Alter_TC(command)
-                s.sendall(command.encode()) 
+                s.sendall((command+ "\n").encode())
+                
+            
+                
                 # 4. Receive telemetry
                 data = s.recv(1024)
                 response = data.decode()  
@@ -62,7 +65,8 @@ def send_TC():
     1: mode change
     2: set onboard time
     3: request housekeeping data
-    4: request payload data""")
+    4: request payload data
+    5: request event log""")
     command=int(input("Enter Telecommand number: "))
     match command:
         case 0:
@@ -75,6 +79,8 @@ def send_TC():
             comm=Request_HK()
         case 4:
             comm=Request_PL()
+        case 5:
+            comm=Request_EL()
         case _:
             print("invalid command")
     return comm
@@ -142,9 +148,11 @@ def Set_onboard_time():
 def Request_HK():
     return "0/00:00:00#"+"3/00"
 
-
 def Request_PL():
     return "0/00:00:00#"+"4/00"
+
+def Request_EL():
+    return "0/00:00:00,"+"5/00"
 
 def time_tag():
     while True:
@@ -180,7 +188,7 @@ def Interpret_TM(telemetry):
     elif telemetry=="NAK":
         print("Unknown telecommand")
     else:
-        cmd, st, par=telemetry.split(sep=",")
+        cmd, st, par=telemetry.split(sep="#")
         match int(cmd):
             case 1:
                 # Set mode
@@ -222,6 +230,8 @@ def Interpret_TM(telemetry):
             case 3:
                 print(par)
             case 4:
+                print(par)
+            case 5:
                 print(par)
             case _:
                 print("error during transmission")

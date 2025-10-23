@@ -9,6 +9,10 @@ from housekeeping import ModeManager, battery_level, spinning_ratio, temperature
 from payload import heartbeat, send_payload
 from scheduler import Scheduler
 
+from event_logger import EventLogger
+
+
+
 
 # Start onboard clock
 clock = OnboardTime(tick_interval=1)
@@ -16,6 +20,7 @@ clock.start_clock()
 
 sched = Scheduler(clock)
 sched.start_tc_check(interval=1)
+event_logger = EventLogger(clock)
 
 
 def heartbeatcheck(stop_event):
@@ -86,8 +91,12 @@ def Communications_Interface():
             print(f"Ground Station connected from {addr}")
             
             while True:
-                # Receive telecommand from ground station
-                data = conn.recv(1024)
+                
+                data = b""
+                while not data.endswith(b"\n"):
+                     data += conn.recv(1024)
+        
+
                 if not data:
                     break
                 else:
@@ -192,6 +201,8 @@ def Interpret_cmd(cmd):
             status=1
         case 4:
             status=1
+        case 5:
+            status=1
         case _:
             status=0
     return status,cmdtype,par
@@ -203,7 +214,7 @@ def Send_TM(status,cmdtype,tm_par):
     #           1 executed
     #           2 scheduled
     # par: parameters, for request data will be the data, for switch mode will be the the 
-    telemetry=cmdtype+","+str(status)+","+tm_par
+    telemetry=cmdtype+"#"+str(status)+"#"+tm_par
     return telemetry
 
 
@@ -225,7 +236,7 @@ def time_is_ok(hh,mm,ss):
             return True
             
 def chose_what_to_do(status, time, cmdtype, par, mm, conn):
-    print(status)
+    event_logger.log_event( "Ground Station", cmdtype, par)
     if status == 0:
         tm_par = "-"
     elif status == 2:
@@ -254,10 +265,14 @@ def chose_what_to_do(status, time, cmdtype, par, mm, conn):
                 bl = hk.battery_level()
                 sr = hk.spinning_ratio()
                 temp = hk.temperature()
-                tm_par = f"Battery: {bl:.2f}%, Spin: {sr:.2f}, Temp: {temp:.2f}"
+                tm_par = f"Battery: {bl:.2f}%\n Spin: {sr:.2f}\n Temp: {temp:.2f}"
             case 4:
-                tm_par = "Payload data TBD"
                 send_payload(conn)
+                tm_par = "-"
+            case 5:
+                print(str(event_logger.get_events()))
+                tm_par = str(event_logger.get_events())
+                event_logger.clear_log()
             case _:
                 tm_par = "-"
     return tm_par
