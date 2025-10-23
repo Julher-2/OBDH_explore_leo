@@ -8,7 +8,6 @@ import numpy as np
 from housekeeping import ModeManager, battery_level, spinning_ratio, temperature
 from payload import heartbeat, send_payload
 from scheduler import Scheduler
-
 from event_logger import EventLogger
 
 
@@ -214,7 +213,7 @@ def Send_TM(status,cmdtype,tm_par):
     #           1 executed
     #           2 scheduled
     # par: parameters, for request data will be the data, for switch mode will be the the 
-    telemetry=cmdtype+"#"+str(status)+"#"+tm_par
+    telemetry=cmdtype+"&"+str(status)+"&"+tm_par
     return telemetry
 
 

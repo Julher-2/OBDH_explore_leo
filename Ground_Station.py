@@ -152,7 +152,7 @@ def Request_PL():
     return "0/00:00:00#"+"4/00"
 
 def Request_EL():
-    return "0/00:00:00,"+"5/00"
+    return "0/00:00:00#"+"5/00"
 
 def time_tag():
     while True:
@@ -188,7 +188,7 @@ def Interpret_TM(telemetry):
     elif telemetry=="NAK":
         print("Unknown telecommand")
     else:
-        cmd, st, par=telemetry.split(sep="#")
+        cmd, st, par=telemetry.split(sep="&")
         match int(cmd):
             case 1:
                 # Set mode
