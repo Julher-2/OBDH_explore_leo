@@ -4,7 +4,7 @@ import random
 def main():
     # **CHANGE THIS to the actual IP address of the Satellite computer**
     HOST = socket.gethostname() 
-    PORT = 12345    # Must match the satellite's port
+    PORT = 5000  # Must match the satellite's port
 
     # 1. Create a socket object
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -146,10 +146,10 @@ def Set_onboard_time():
 
 
 def Request_HK():
-    return "0/00:00:00,"+"3/00"
+    return "0/00:00:00#"+"3/00"
 
 def Request_PL():
-    return "0/00:00:00,"+"4/00"
+    return "0/00:00:00#"+"4/00"
 
 def Request_EL():
     return "0/00:00:00,"+"5/00"
@@ -173,9 +173,9 @@ def time_tag():
                 else:
                     print("invalid time format\n")
         else:
-            return "0/00:00:00,"
+            return "0/00:00:00#"
     # if evrything is fine the function creates the time tag
-    return "1/"+tt+","  #if it is time tagged the first digit will be 1
+    return "1/"+tt+"#"  #if it is time tagged the first digit will be 1
 
 
 
@@ -242,7 +242,7 @@ def Alter_TC(command):
         char_list=list(command)
         max_index = len(command) - 1
         random_index = random.randint(0, max_index)
-        char_list[random_index]="#"
+        char_list[random_index]="?"
         command="".join(char_list)
     return command
 
